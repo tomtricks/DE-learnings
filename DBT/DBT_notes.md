@@ -61,3 +61,58 @@
 
 **Bottom Line:** dbt handles the "T" in ELT, ensuring data is clean and analytics-ready
 ```
+
+
+```markdown
+# Analytics Development Lifecycle (ADLC)
+
+## The ADLC Flow
+
+The ADLC is split into two main phases: **DATA** and **OPS**
+
+---
+
+## DATA Phase (Building)
+
+### 1. **Plan**
+- Define what data transformations are needed
+- Decide on models and business logic
+
+### 2. **Develop**
+- Write transformation code (SQL models in dbt)
+- Build data models
+
+### 3. **Test**
+- Validate transformations work correctly
+- Test data quality and integrity
+
+### 4. **Deploy**
+- Push changes to production
+- Make transformed data available
+
+---
+
+## OPS Phase (Monitoring & Improvement)
+
+### 5. **Operate**
+- Run scheduled jobs
+- Keep data pipelines running
+
+### 6. **Observe**
+- Monitor pipeline performance
+- Track data freshness and quality
+
+### 7. **Discover**
+- Explore data for insights
+- Identify patterns and trends
+
+### 8. **Analyse**
+- Use data for decision-making
+- Generate reports and dashboards
+- Feed findings back into **Plan** (continuous cycle)
+
+---
+
+## Key Takeaway
+ADLC is a **continuous cycle**: Insights from analysis feed back into planning, creating an iterative improvement loop for analytics workflows.
+```
