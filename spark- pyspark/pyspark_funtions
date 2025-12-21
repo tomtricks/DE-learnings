@@ -544,5 +544,474 @@ Then:
 4. Fill null departments with "Unassigned"
 5. Use coalesce to show salary, if null show 50000
 
-Done?
+-----
+## **Lesson 8: Reading & Writing Files**
 
+Real data comes from files! This is core DE work.
+
+---
+
+### **1. Reading CSV**
+
+```python
+# Basic read
+df = spark.read.csv("path/to/file.csv")
+
+# With options (most common)
+df = spark.read.csv(
+    "path/to/file.csv",
+    header=True,           # First row is header
+    inferSchema=True,      # Auto-detect data types
+    sep=",",              # Delimiter (default is comma)
+    nullValue="NA"        # Treat "NA" as null
+)
+
+# Alternative syntax
+df = spark.read \
+    .option("header", "true") \
+    .option("inferSchema", "true") \
+    .csv("path/to/file.csv")
+
+df.show()
+```
+
+---
+
+### **2. Reading JSON**
+
+```python
+# Simple JSON
+df = spark.read.json("path/to/file.json")
+
+# Multiline JSON
+df = spark.read.json("path/to/file.json", multiLine=True)
+
+df.show()
+```
+
+---
+
+### **3. Reading Parquet** (Most efficient for big data!)
+
+```python
+df = spark.read.parquet("path/to/file.parquet")
+```
+
+---
+
+### **4. Writing CSV**
+
+```python
+# Basic write
+df.write.csv("output/path")
+
+# With options
+df.write.csv(
+    "output/path",
+    header=True,
+    mode="overwrite"  # overwrite, append, ignore, error
+)
+
+# Better syntax
+df.write \
+    .mode("overwrite") \
+    .option("header", "true") \
+    .csv("output/path")
+```
+
+**Write Modes:**
+- `overwrite` - Delete existing and write new
+- `append` - Add to existing data
+- `ignore` - Do nothing if exists
+- `error` - Fail if exists (default)
+
+---
+
+### **5. Writing JSON**
+
+```python
+df.write.json("output/path", mode="overwrite")
+```
+
+---
+
+### **6. Writing Parquet** (Recommended!)
+
+```python
+df.write.parquet("output/path", mode="overwrite")
+```
+
+**Why Parquet?**
+- Columnar format (faster queries)
+- Compressed (smaller size)
+- Schema included
+- Industry standard for data lakes
+
+---
+
+### **7. Reading Multiple Files**
+
+```python
+# Read all CSVs in folder
+df = spark.read.csv("path/to/folder/*.csv", header=True)
+
+# Read specific pattern
+df = spark.read.csv("path/data_2024*.csv", header=True)
+```
+
+---
+
+### **8. Partitioned Write** (Important for big data!)
+
+```python
+# Partition by column (creates folders)
+df.write.partitionBy("department").parquet("output/path")
+
+# Result: output/path/department=HR/, department=Sales/, etc.
+
+# Multiple partitions
+df.write.partitionBy("year", "month").parquet("output/path")
+```
+
+---
+
+## **Quick Reference:**
+
+| Format | When to Use |
+|--------|-------------|
+| **CSV** | Small data, human-readable, sharing with Excel |
+| **JSON** | Semi-structured, APIs, nested data |
+| **Parquet** | Big data, data lakes, fastest performance |
+
+---
+
+## **Your Practice Task:**
+
+1. Create employee DataFrame (5+ rows)
+2. Write it as CSV with header
+3. Write it as Parquet
+4. Read the Parquet file back
+5. Write partitioned by department
+
+Try it!
+
+
+----
+
+## **Lesson 9: Conditional Logic (when/otherwise)**
+
+Like IF-ELSE statements in SQL/Python!
+
+---
+
+### **1. Basic when/otherwise**
+
+```python
+from pyspark.sql.functions import when, col
+
+data = [(1, "Alice", 25), (2, "Bob", 30), (3, "Charlie", 35)]
+df = spark.createDataFrame(data, ["id", "name", "age"])
+
+# Single condition
+df.withColumn(
+    "age_group",
+    when(col("age") > 30, "Senior").otherwise("Junior")
+).show()
+```
+
+**Output:**
+```
++---+-------+---+---------+
+| id|   name|age|age_group|
++---+-------+---+---------+
+|  1|  Alice| 25|   Junior|
+|  2|    Bob| 30|   Junior|
+|  3|Charlie| 35|   Senior|
++---+-------+---+---------+
+```
+
+---
+
+### **2. Multiple Conditions (IF-ELIF-ELSE)**
+
+```python
+df.withColumn(
+    "category",
+    when(col("age") < 25, "Young")
+    .when(col("age") < 30, "Adult")
+    .otherwise("Senior")
+).show()
+```
+
+---
+
+### **3. Conditions Based on Multiple Columns**
+
+```python
+data = [(1, "Alice", 80000, "Sales"), 
+        (2, "Bob", 60000, "HR"),
+        (3, "Charlie", 90000, "Engineering")]
+df = spark.createDataFrame(data, ["id", "name", "salary", "dept"])
+
+df.withColumn(
+    "bonus",
+    when((col("salary") > 70000) & (col("dept") == "Sales"), 5000)
+    .when((col("salary") > 70000) & (col("dept") == "Engineering"), 7000)
+    .otherwise(2000)
+).show()
+```
+
+---
+
+### **4. Nested Conditions**
+
+```python
+df.withColumn(
+    "rating",
+    when(col("salary") > 80000, 
+         when(col("dept") == "Engineering", "A+").otherwise("A"))
+    .when(col("salary") > 60000, "B")
+    .otherwise("C")
+).show()
+```
+
+---
+
+### **5. Using with NULL checks**
+
+```python
+data = [(1, "Alice", 25), (2, "Bob", None), (3, None, 35)]
+df = spark.createDataFrame(data, ["id", "name", "age"])
+
+df.withColumn(
+    "age_status",
+    when(col("age").isNull(), "Unknown")
+    .when(col("age") > 30, "Senior")
+    .otherwise("Junior")
+).show()
+```
+
+---
+
+### **6. Replace Values Conditionally**
+
+```python
+# Update existing column
+df.withColumn(
+    "age",
+    when(col("age").isNull(), 0).otherwise(col("age"))
+).show()
+```
+
+---
+
+## **Your Practice Task:**
+
+Create employee DataFrame: emp_id, name, salary, performance_score (1-5)
+
+Add columns:
+1. **grade**: 
+   - score >= 4: "Excellent"
+   - score >= 3: "Good"
+   - score >= 2: "Average"
+   - else: "Poor"
+
+2. **bonus_pct**:
+   - salary > 80000 AND score >= 4: 15%
+   - salary > 80000: 10%
+   - score >= 4: 12%
+   - else: 5%
+
+3. **status**:
+   - If salary is null: "No Data"
+   - If salary < 50000: "Entry Level"
+   - else: "Experienced"
+
+Try it!
+
+---
+
+## **Lesson 10: Window Functions**
+
+Advanced but **very powerful** for rankings, running totals, and comparisons!
+
+---
+
+### **What are Window Functions?**
+
+Perform calculations **across rows** related to current row (without grouping).
+
+---
+
+### **Setup**
+
+```python
+from pyspark.sql.window import Window
+from pyspark.sql.functions import row_number, rank, dense_rank, lag, lead, sum, avg
+
+data = [
+    ("Alice", "Sales", 80000),
+    ("Bob", "Sales", 60000),
+    ("Charlie", "Sales", 90000),
+    ("David", "Engineering", 95000),
+    ("Eve", "Engineering", 85000),
+    ("Frank", "Engineering", 95000)
+]
+df = spark.createDataFrame(data, ["name", "dept", "salary"])
+```
+
+---
+
+### **1. Define Window Specification**
+
+```python
+# Partition by department, order by salary descending
+window_spec = Window.partitionBy("dept").orderBy(col("salary").desc())
+```
+
+**Think:** "Within each department, order by salary"
+
+---
+
+### **2. row_number() - Unique rank**
+
+```python
+df.withColumn("row_num", row_number().over(window_spec)).show()
+```
+
+**Output:**
+```
++-------+-----------+------+-------+
+|   name|       dept|salary|row_num|
++-------+-----------+------+-------+
+|Charlie|      Sales| 90000|      1|
+|  Alice|      Sales| 80000|      2|
+|    Bob|      Sales| 60000|      3|
+|  David|Engineering| 95000|      1|
+|  Frank|Engineering| 95000|      2| <- Unique even if tie
+|    Eve|Engineering| 85000|      3|
++-------+-----------+------+-------+
+```
+
+---
+
+### **3. rank() - Gaps in ranking**
+
+```python
+df.withColumn("rank", rank().over(window_spec)).show()
+```
+
+**Output:**
+```
+|  David|Engineering| 95000|    1|
+|  Frank|Engineering| 95000|    1| <- Same rank for tie
+|    Eve|Engineering| 85000|    3| <- Gap (skips 2)
+```
+
+---
+
+### **4. dense_rank() - No gaps**
+
+```python
+df.withColumn("dense_rank", dense_rank().over(window_spec)).show()
+```
+
+**Output:**
+```
+|  David|Engineering| 95000|         1|
+|  Frank|Engineering| 95000|         1|
+|    Eve|Engineering| 85000|         2| <- No gap
+```
+
+---
+
+### **5. lag() - Previous row value**
+
+```python
+# Get previous salary in same department
+window_spec2 = Window.partitionBy("dept").orderBy("salary")
+
+df.withColumn("prev_salary", lag("salary", 1).over(window_spec2)).show()
+```
+
+**Output:**
+```
+|    Bob|      Sales| 60000|      null| <- No previous
+|  Alice|      Sales| 80000|     60000|
+|Charlie|      Sales| 90000|     80000|
+```
+
+---
+
+### **6. lead() - Next row value**
+
+```python
+df.withColumn("next_salary", lead("salary", 1).over(window_spec2)).show()
+```
+
+---
+
+### **7. Running Total (Cumulative Sum)**
+
+```python
+window_spec3 = Window.partitionBy("dept").orderBy("salary").rowsBetween(Window.unboundedPreceding, Window.currentRow)
+
+df.withColumn("running_total", sum("salary").over(window_spec3)).show()
+```
+
+**Output:**
+```
+|    Bob|      Sales| 60000|       60000|
+|  Alice|      Sales| 80000|      140000| <- 60k + 80k
+|Charlie|      Sales| 90000|      230000| <- 60k + 80k + 90k
+```
+
+---
+
+### **8. Moving Average (Last 2 rows)**
+
+```python
+window_spec4 = Window.partitionBy("dept").orderBy("salary").rowsBetween(-1, 0)
+
+df.withColumn("moving_avg", avg("salary").over(window_spec4)).show()
+```
+
+---
+
+### **9. Window without partitionBy (entire dataset)**
+
+```python
+# Rank across ALL departments
+window_all = Window.orderBy(col("salary").desc())
+
+df.withColumn("overall_rank", rank().over(window_all)).show()
+```
+
+---
+
+## **Quick Reference:**
+
+| Function | Use Case |
+|----------|----------|
+| **row_number()** | Unique sequential number |
+| **rank()** | Ranking with gaps |
+| **dense_rank()** | Ranking without gaps |
+| **lag()** | Previous row value |
+| **lead()** | Next row value |
+| **sum/avg/count** | Running totals, moving averages |
+
+---
+
+## **Your Practice Task:**
+
+Create sales data: salesperson, region, sales_amount, date
+
+Calculate:
+1. Rank salespeople by amount within each region
+2. Previous sale amount for each person
+3. Running total of sales per region
+4. Top 2 salespeople per region (use row_number)
+
+Try it!
+
+----
