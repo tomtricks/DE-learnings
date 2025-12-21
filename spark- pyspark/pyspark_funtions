@@ -1,0 +1,300 @@
+pyspark with functions worked on databricks
+
+
+Perfect! Let's start from the very beginning.
+
+## **Lesson 1: What is PySpark?**
+
+**PySpark** = Python API for Apache Spark  
+**Spark** = Distributed computing framework (process BIG data across multiple machines)
+
+**Why PySpark?**
+- Process data too large for single machine (TB/PB scale)
+- Faster than traditional tools (in-memory processing)
+- Used by: Netflix, Uber, Airbnb, etc.
+
+---
+
+## **Setup - SparkSession**
+
+Every PySpark program starts here:
+
+```python
+from pyspark.sql import SparkSession
+
+# Create Spark session (entry point)
+spark = SparkSession.builder \
+    .appName("MyFirstApp") \
+    .getOrCreate()
+```
+
+Think of **SparkSession** as your "connection" to Spark.
+
+---
+
+## **Create Your First DataFrame**
+
+```python
+# Method 1: From list
+data = [
+    (1, "Alice", 25),
+    (2, "Bob", 30),
+    (3, "Charlie", 35)
+]
+
+df = spark.createDataFrame(data, ["id", "name", "age"])
+
+# View it
+df.show()
+```
+
+**Output:**
+```
++---+-------+---+
+| id|   name|age|
++---+-------+---+
+|  1|  Alice| 25|
+|  2|    Bob| 30|
+|  3|Charlie| 35|
++---+-------+---+
+```
+
+---
+
+## **Your Practice Task:**
+
+Create a DataFrame with:
+- 5 employees
+- Columns: emp_id, name, department, salary
+
+Then show it.
+
+**Try it yourself first!** Reply when done or if you need help.
+
+---
+
+## **Lesson 2: Basic DataFrame Operations**
+
+### **1. View DataFrame Info**
+
+```python
+# Show data
+df.show()
+
+# Show first n rows
+df.show(5)
+
+# See structure (column names & types)
+df.printSchema()
+
+# Get column names
+df.columns  # ['id', 'name', 'age']
+
+# Count rows
+df.count()  # 3
+```
+
+---
+
+### **2. Select Columns**
+
+```python
+# Select single column
+df.select("name").show()
+
+# Select multiple columns
+df.select("name", "age").show()
+
+# Using col() function
+from pyspark.sql.functions import col
+
+df.select(col("name"), col("age")).show()
+```
+
+---
+
+### **3. Filter/Where (get specific rows)**
+
+```python
+# Filter rows
+df.filter(df.age > 25).show()
+
+# Same using where
+df.where(df.age > 25).show()
+
+# Multiple conditions (AND)
+df.filter((df.age > 25) & (df.name == "Bob")).show()
+
+# OR condition
+df.filter((df.age > 25) | (df.name == "Alice")).show()
+```
+
+**Important:** Use `&` for AND, `|` for OR (not `and`/`or`)
+
+---
+
+## **Your Practice Task:**
+
+Using your employee DataFrame:
+
+1. Show only names and salaries
+2. Filter employees with salary > 50000
+3. Filter employees in "Engineering" department AND salary > 60000
+
+----
+
+Great! 🚀
+
+---
+
+## **Lesson 3: Add, Modify & Remove Columns**
+
+### **1. Add New Column**
+
+```python
+from pyspark.sql.functions import col, lit
+
+# Add column with calculation
+df.withColumn("age_plus_5", col("age") + 5).show()
+
+# Add column with fixed value
+df.withColumn("country", lit("USA")).show()
+
+# Add column with condition (we'll cover this more later)
+df.withColumn("senior", col("age") > 30).show()
+```
+
+**Note:** `withColumn()` doesn't modify original df, it returns a NEW df!
+
+```python
+# Save it back if you want to keep changes
+df = df.withColumn("age_plus_5", col("age") + 5)
+```
+
+---
+
+### **2. Rename Column**
+
+```python
+df.withColumnRenamed("name", "employee_name").show()
+```
+
+---
+
+### **3. Remove Column**
+
+```python
+# Drop single column
+df.drop("age").show()
+
+# Drop multiple columns
+df.drop("age", "name").show()
+```
+
+---
+
+### **4. Modify Existing Column**
+
+```python
+# Overwrite age column
+df.withColumn("age", col("age") + 1).show()
+
+# Change data type
+df.withColumn("age", col("age").cast("string")).show()
+```
+
+---
+
+## **Your Practice Task:**
+
+Using your employee DataFrame:
+
+1. Add column "bonus" = salary * 0.10
+2. Add column "status" with value "Active"
+3. Rename "department" to "dept"
+4. Calculate "annual_salary" = salary * 12
+
+Show the result!
+
+
+---
+
+Perfect! 💪
+
+---
+
+## **Lesson 4: Sorting & Ordering**
+
+### **Sort Data**
+
+```python
+from pyspark.sql.functions import col, desc, asc
+
+# Sort ascending (default)
+df.orderBy("age").show()
+
+# Sort descending
+df.orderBy(col("age").desc()).show()
+
+# Multiple columns
+df.orderBy("department", col("salary").desc()).show()
+
+# Using sort() - same as orderBy()
+df.sort("age").show()
+```
+
+---
+
+## **Lesson 5: Aggregations**
+
+### **Basic Aggregations**
+
+```python
+from pyspark.sql.functions import count, sum, avg, min, max
+
+# Single aggregation
+df.select(avg("salary")).show()
+df.select(max("salary")).show()
+
+# Multiple aggregations
+df.select(
+    count("*").alias("total_employees"),
+    avg("salary").alias("avg_salary"),
+    max("salary").alias("max_salary")
+).show()
+```
+
+---
+
+### **GroupBy - Most Important!**
+
+```python
+# Group by department and count
+df.groupBy("department").count().show()
+
+# Group by with aggregations
+df.groupBy("department").agg(
+    avg("salary").alias("avg_salary"),
+    count("*").alias("emp_count"),
+    max("salary").alias("max_salary")
+).show()
+
+# Multiple grouping columns
+df.groupBy("department", "status").count().show()
+```
+
+---
+
+## **Your Practice Task:**
+
+Using your employee DataFrame:
+
+1. Sort by salary (highest first)
+2. Find total number of employees
+3. Find average salary across all employees
+4. **GroupBy department** and show:
+   - Count of employees per department
+   - Average salary per department
+   - Max salary per department
+
+Try it! This is a crucial concept.
