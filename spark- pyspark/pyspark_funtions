@@ -298,3 +298,251 @@ Using your employee DataFrame:
    - Max salary per department
 
 Try it! This is a crucial concept.
+
+---
+
+## **Lesson 6: Joins**
+
+Joins combine two DataFrames based on a common column.
+
+---
+
+### **Setup - Create 2 DataFrames**
+
+```python
+# Employee data
+employees = [
+    (1, "Alice", "Engineering"),
+    (2, "Bob", "Sales"),
+    (3, "Charlie", "Engineering"),
+    (4, "David", "HR")
+]
+emp_df = spark.createDataFrame(employees, ["emp_id", "name", "dept"])
+
+# Salary data
+salaries = [
+    (1, 80000),
+    (2, 60000),
+    (3, 75000),
+    (5, 90000)  # Note: emp_id 5 doesn't exist in employees
+]
+sal_df = spark.createDataFrame(salaries, ["emp_id", "salary"])
+```
+
+---
+
+### **1. Inner Join (Most Common)**
+
+Returns only matching rows from both DataFrames.
+
+```python
+# Join on emp_id
+emp_df.join(sal_df, "emp_id", "inner").show()
+
+# OR using on condition
+emp_df.join(sal_df, emp_df.emp_id == sal_df.emp_id, "inner").show()
+```
+
+**Result:** Only emp_id 1, 2, 3 (David and emp_id 5 excluded)
+
+---
+
+### **2. Left Join (Left Outer)**
+
+Returns ALL rows from LEFT df + matching from RIGHT (nulls if no match).
+
+```python
+emp_df.join(sal_df, "emp_id", "left").show()
+```
+
+**Result:** All 4 employees. David gets NULL salary.
+
+---
+
+### **3. Right Join (Right Outer)**
+
+Returns ALL rows from RIGHT df + matching from LEFT.
+
+```python
+emp_df.join(sal_df, "emp_id", "right").show()
+```
+
+**Result:** emp_id 5 included with NULL name/dept.
+
+---
+
+### **4. Full Outer Join**
+
+Returns ALL rows from BOTH (nulls where no match).
+
+```python
+emp_df.join(sal_df, "emp_id", "outer").show()
+```
+
+**Result:** All 5 records (David with NULL salary, emp_id 5 with NULL name/dept).
+
+---
+
+### **5. Left Anti Join**
+
+Returns rows from LEFT that DON'T have match in RIGHT.
+
+```python
+emp_df.join(sal_df, "emp_id", "left_anti").show()
+```
+
+**Result:** Only David (no salary record).
+
+---
+
+### **6. Left Semi Join**
+
+Returns rows from LEFT that HAVE match in RIGHT (but no columns from RIGHT).
+
+```python
+emp_df.join(sal_df, "emp_id", "left_semi").show()
+```
+
+**Result:** Alice, Bob, Charlie (no salary column shown).
+
+---
+
+## **Quick Reference:**
+
+| Join Type | Returns |
+|-----------|---------|
+| **inner** | Only matches from both |
+| **left** | All from left + matches from right |
+| **right** | All from right + matches from left |
+| **outer** | All from both |
+| **left_anti** | Left rows WITHOUT match in right |
+| **left_semi** | Left rows WITH match in right (no right columns) |
+
+---
+
+## **Your Practice Task:**
+
+Create 2 DataFrames:
+- **orders:** order_id, customer_id, amount
+- **customers:** customer_id, name, city
+
+Then:
+1. Inner join - show orders with customer names
+2. Left join - show all orders (even if customer doesn't exist)
+3. Find customers who have NO orders (use left_anti)
+
+Try it!
+
+---
+
+## **Lesson 7: Handling Nulls (Missing Data)**
+
+Very important in real-world data!
+
+---
+
+### **Setup - Data with Nulls**
+
+```python
+data = [
+    (1, "Alice", 25, 80000),
+    (2, "Bob", None, 60000),
+    (3, "Charlie", 35, None),
+    (4, None, 28, 70000),
+    (5, "Eve", None, None)
+]
+df = spark.createDataFrame(data, ["id", "name", "age", "salary"])
+df.show()
+```
+
+---
+
+### **1. Check for Nulls**
+
+```python
+from pyspark.sql.functions import col, isnan, isnull
+
+# Filter null values
+df.filter(col("age").isNull()).show()
+
+# Filter non-null values
+df.filter(col("age").isNotNull()).show()
+
+# Multiple columns
+df.filter(col("age").isNull() | col("salary").isNull()).show()
+```
+
+---
+
+### **2. Drop Rows with Nulls**
+
+```python
+# Drop rows with ANY null
+df.dropna().show()  # or df.na.drop()
+
+# Drop only if ALL columns are null
+df.dropna(how="all").show()
+
+# Drop if specific columns have null
+df.dropna(subset=["age"]).show()
+df.dropna(subset=["age", "salary"]).show()
+```
+
+---
+
+### **3. Fill Nulls (Replace with values)**
+
+```python
+# Fill all nulls with 0
+df.fillna(0).show()
+
+# Fill with different values per column
+df.fillna({"age": 0, "salary": 50000, "name": "Unknown"}).show()
+
+# Fill only specific columns
+df.fillna({"age": 30}).show()
+```
+
+---
+
+### **4. Replace Values**
+
+```python
+# Replace specific value
+df.replace(25, 26).show()
+
+# Replace in specific column
+df.replace(25, 26, subset=["age"]).show()
+```
+
+---
+
+### **5. Coalesce (Return first non-null)**
+
+```python
+from pyspark.sql.functions import coalesce, lit
+
+# Use backup value if null
+df.select(
+    "id",
+    coalesce(col("name"), lit("NoName")).alias("name"),
+    coalesce(col("age"), lit(0)).alias("age")
+).show()
+```
+
+---
+
+## **Your Practice Task:**
+
+Create DataFrame with nulls:
+- emp_id, name, department, salary, bonus
+
+Then:
+1. Show employees with null salary
+2. Drop rows where salary is null
+3. Fill null bonuses with 0
+4. Fill null departments with "Unassigned"
+5. Use coalesce to show salary, if null show 50000
+
+Done?
+
