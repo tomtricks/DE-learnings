@@ -1,0 +1,82 @@
+SELECT *
+FROM read_files(
+       DA.paths_working_dir || '/xml_demo_files/example_1_data.xml',
+       format => "xml",
+       rowTag => 'book',
+       schema => '''
+            _id INT, 
+            author STRING, 
+            title STRING
+          ''',
+       rescueddatacolumn => '_rescued_data'
+     );
+
+The function read_files is part of Databricks’ Auto Loader / file ingestion APIs, which internally leverage Spark’s DataFrame reader capabilities.
+
+-- Drop the table if it exists for demonstration purposes
+DROP TABLE IF EXISTS books_bronze_xml;
+
+
+-- Create the Delta table
+CREATE TABLE books_bronze_xml 
+AS
+SELECT
+  _id AS book_id,
+  * EXCEPT (_id),
+  current_timestamp AS ingestion_timestamp,
+  _metadata.file_name AS source_file
+FROM read_files(
+       DA.paths_working_dir || '/xml_demo_files/example_1_data.xml',
+       format => "xml",
+       rowTag => 'book',
+       schema => '''
+            _id INT, 
+            author STRING, 
+            title STRING
+          ''',
+       rescuedDataColumn => '_rescued_data'
+     );
+
+---
+
+-- View the datatypes of the columns 
+DESCRIBE books_bronze_xml
+
+---
+DESCRIBE VOLUME dbacademy_ecommerce.v01.raw;
+Yes — DESCRIBE VOLUME is exactly how you inspect metadata about a Unity Catalog volume in Databricks.
+
+---
+
+LIST loaction
+will listthe folders inside it
+---
+
+%python
+
+## Create a volume to store the Auto Loader checkpoint files
+spark.sql(f'CREATE VOLUME IF NOT EXISTS dbacademy.{DA.schema_name}.auto_loader_files')
+
+## Set checkpoint location to the volume from above
+checkpoint_file_location = f'/Volumes/dbacademy/{DA.schema_name}/auto_loader_files'
+
+## Incrementally (or stream) data using Auto Loader
+(spark
+ .readStream
+   .format("cloudFiles")
+   .option("cloudFiles.format", "csv")
+   .option("header", "true")
+   .option("sep", "|")
+   .option("inferSchema", "true")
+   .option("cloudFiles.schemaLocation", f"{checkpoint_file_location}")
+   .load(f"/Volumes/dbacademy/{DA.schema_name}/csv_files_autoloader_source/")
+ .writeStream
+   .option("checkpointLocation", f"{checkpoint_file_location}")
+   .trigger(once=True)
+   .toTable(f"dbacademy.{DA.schema_name}.python_csv_autoloader")
+) 
+
+---
+
+
+
