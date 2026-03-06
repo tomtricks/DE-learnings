@@ -1,3 +1,43 @@
+
+
+COPY INTO
+https://docs.databricks.com/aws/en/sql/language-manual/delta-copy-into
+
+----
+we can use readfiles() function as to create a Table CTAS
+like
+CREATE TABLE historical_users_bronze_ctas_rf 
+SELECT * 
+FROM read_files(
+        '/Volumes/dbacademy_ecommerce/v01/raw/users-historical',
+        format => 'parquet'
+      );
+
+------
+Read files - https://docs.databricks.com/aws/en/sql/language-manual/functions/read_files
+
+----
+Parquet: It’s a columnar storage format that is self-describing. That means the schema (column names, data types, etc.) is embedded inside the file itself.
+When you query a Parquet file, the engine (Spark, Hive, DuckDB, etc.) can automatically read the schema without you having to manually specify it.
+This is one of the big advantages of Parquet — it’s efficient and schema-aware.
+
+CSV: A CSV file is just plain text with rows and columns separated by delimiters (commas, tabs, etc.). 
+It doesn’t carry any metadata about column types. 
+So when you load a CSV into a database or query engine, you usually need to define the schema explicitly (e.g., which columns are strings, integers, dates). Otherwise, the system will treat everything as text,
+which can cause issues with performance and correctness.
+
+
+------
+
+SELECT *
+FROM parquet.`/path/to/file.parquet`
+Spark SQL lets you query Parquet files directly using the file path.
+
+
+
+-----
+
+
 SELECT *
 FROM read_files(
        DA.paths_working_dir || '/xml_demo_files/example_1_data.xml',
