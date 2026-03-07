@@ -1,5 +1,79 @@
 
+yet to check
+2B creating streaming table with autoloader
+JSON 07 LABS to check
 
+
+
+
+----
+
+
+As a part of ingestion, you can perform inserts, updates and deletes using data from a source table, view, or DataFrame into a target Delta table using the MERGE SQL operation.
+Delta Lake supports inserts, updates and deletes in MERGE, and supports extended syntax beyond the SQL standards to facilitate advanced use cases.
+
+Syntax:
+MERGE INTO target t
+USING source s
+ON {merge_condition}
+WHEN MATCHED THEN {matched_action}
+WHEN NOT MATCHED THEN {not_matched_action}
+
+if any chnage in schema or to adding new column then when unsing merge use as
+MERGE WITH SCHEMA EVOLUTION INTO main_users_target target .....  -- Use the MERGE WITH SCHEMA EVOLUTION INTO statement
+and add the new column in last insert query.
+
+
+DESCRIBE HISTORY main_users_target; -> to get the histroy on tables
+
+You can use VERSION AS OF to query a specific version of the table. Query version 1 of the table to view the original data.
+
+eg:
+MERGE WITH SCHEMA EVOLUTION INTO main_users_target target  -- Use the MERGE WITH SCHEMA EVOLUTION INTO statement
+USING new_users_source source
+ON target.id = source.id
+WHEN MATCHED AND source.status = 'update' THEN
+  UPDATE SET 
+    target.email = source.email,
+    target.status = source.status
+WHEN MATCHED AND source.status = 'delete' THEN
+  DELETE
+WHEN NOT MATCHED AND source.status = 'new' THEN
+  INSERT (id, first_name, email, sign_up_date, status, country)
+  VALUES (source.id, source.first_name, source.email, source.sign_up_date, source.status, source.country);
+
+----
+
+Schema Enforcement – STRUCT columns define and enforce a schema, helping maintain data integrity.
+Improved Performance – STRUCTs are generally more efficient for querying and processing than plain strings.
+
+Schema_of_json()-> https://docs.databricks.com/aws/en/sql/language-manual/functions/schema_of_json
+eg:
+SELECT schema_of_json('{"device":"Linux","ecommerce":{"purchase_revenue_in_usd":1075.5,"total_item_quantity":1,"unique_items":1} as schema
+
+from_json() - >This function parses a column containing a JSON-formatted string into a STRUCT type using the specified schema for a new table.
+
+We can query the STRUCT column using value.device or value.ecommerce in our SELECT statement.
+
+
+
+---
+Base64 encoding is commonly used when ingesting data from sources like message queues or streaming platforms,
+where preserving formatting and avoiding data corruption is important.
+(Values will be in encrypt format when ingest)
+
+
+%sql
+SELECT
+  key AS encoded_key,
+  unbase64(key) AS decoded_key,
+  value AS encoded_value,
+  unbase64(value) AS decoded_value
+FROM kafka_events_bronze_raw
+LIMIT 5;
+
+-- String to binary type when encoded with unbase64()
+--Run the cell and view the results. Notice that the decoded_key and decoded_value columns are now BINARY
 
 
 
@@ -11,6 +85,12 @@ The rescued data column contains any data that isn’t parsed for the following 
 The column is missing from the schema.
 Type mismatches
 Case mismatches
+
+what is other cases like
+
+you use spark.read.json, spark.read.csv, or LOAD DATA then
+If the schema doesn’t match the data (e.g., wrong types), Spark may throw errors or set values to NULL.
+
 
 SELECT *
 FROM read_files(
@@ -46,9 +126,22 @@ REPLACE(get_json_object(_rescued_data,'$.price'),"$",''),
 --
 get_json_object() is the most common way to pull values out of a JSON string
 
+With read_files() → extra fields are preserved in _rescued_data.
+
+Without read_files() → extra fields are dropped, unless you explicitly parse the raw JSON yourself.
+
 
 ---
 Metadata - https://docs.databricks.com/en/ingestion/file-metadata-column.html
+To access metadata:
+the DESCRIBE DETAIL command is specifically used to return metadata about a Delta table. 
+Unlike DESCRIBE HISTORY (which shows the transaction log of operations like MERGE, UPDATE, OPTIMIZE, etc.), 
+DESCRIBE DETAIL gives you the current state and properties of the table.
+eg:
+DESCRIBE DETAIL 'location_of_the_file'
+some details in metadata can be take like _metadata.file_modification_time, _metadata.file_name ...
+
+
 ------
 COPY INTO
 https://docs.databricks.com/aws/en/sql/language-manual/delta-copy-into
