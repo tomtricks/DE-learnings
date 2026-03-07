@@ -1,5 +1,55 @@
 
 
+
+
+
+----
+Rescued Data Column
+The rescued data column ensures that rows that don’t match with the schema are rescued instead of being dropped. 
+The rescued data column contains any data that isn’t parsed for the following reasons:
+
+The column is missing from the schema.
+Type mismatches
+Case mismatches
+
+SELECT *
+FROM read_files(
+        DA.paths_working_dir || '/csv_demo_files/malformed_example_1_data.csv',
+        format => "csv",
+        sep => "|",
+        header => true,
+        schema => '''
+            order_id INT, 
+            email STRING, 
+            transactions_timestamp BIGINT''', 
+        rescueddatacolumn => '_rescued_data'    -- Create the _rescued_data column
+      );
+
+--
+TO ingest the rescuded data in the column for the table
+SELECT
+  cast(_rescued_data:_c0 AS BIGINT) AS order_id from table_name;
+
+-----
+
+eg:
+
+select
+CAST(
+  COALESCE( 
+REPLACE(get_json_object(_rescued_data,'$.price'),"$",''), 
+'0'
+) as DOUBLE
+ )as all_price,
+  * from 05_lab_bronze;
+
+--
+get_json_object() is the most common way to pull values out of a JSON string
+
+
+---
+Metadata - https://docs.databricks.com/en/ingestion/file-metadata-column.html
+------
 COPY INTO
 https://docs.databricks.com/aws/en/sql/language-manual/delta-copy-into
 
