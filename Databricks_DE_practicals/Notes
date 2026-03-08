@@ -1,9 +1,18 @@
 
-yet to check
-2B creating streaming table with autoloader
-JSON 07 LABS to check
 
 
+----
+
+Scheduled — you will see two types of schedule type Simple and Advanced
+
+Simple: This provides options for scheduling periodic job runs on a daily, hourly, or weekly basis.
+Advanced: This option allows you to schedule jobs using CRON syntax for precise timing.
+Table Update - A trigger can be set up in platforms like Azure Databricks to run automatically whenever one or more specified tables are updated.
+
+Continuous — runs repeatedly with a short interval between runs.
+
+File arrival — monitors an external location or volume for new files. 
+Note the Advanced settings, where you can adjust the time between checks and the delay after a new file arrives before starting a run.
 
 
 ----
