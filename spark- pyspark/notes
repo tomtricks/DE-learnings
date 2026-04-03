@@ -1,0 +1,319 @@
+
+
+
+What is Apache Spark?
+Spark is a distributed data processing engine.
+
+1 machine → slow
+spark:
+Multiple machines → parallel processing → fast
+
+Spark Architecture
+Driver → Executors → Cluster Manager
+
+
+Driver:
+Understands logic
+Creates execution plan
+
+Executors (Workers)
+Executor 1 → processes part of data
+Executor 2 → processes another part
+Executor 3 → processes another part
+
+
+Cluster Manager
+Allocates resources.
+How many executors?
+How much memory?
+Where to run?
+
+
+Difference between driver and executor?
+Answer:
+The driver coordinates the job and creates execution plans, while executors perform the actual data processing tasks.
+
+
+
+What is a Partition?
+Partition = a chunk of data
+
+1GB file
+→ 4 partitions
+→ each 256MB
+
+
+Too many partitions:
+Overhead → slower performance
+
+What happens if you have only 1 partition?
+Answer:
+Only one task runs, so parallelism is lost and performance degrades.
+
+How Spark Executes a Job
+Step-by-step:
+Plain text
+1. User writes code
+2. Driver creates logical plan
+3. Spark optimizes it (Catalyst optimizer)
+4. Splits into stages
+5. Sends tasks to executors
+6. Executors process partitions
+7. Results returned
+
+
+Lazy Evaluation (VERY IMPORTANT)
+
+Spark does NOT execute immediately.
+df = spark.read.csv("file.csv")
+df = df.filter("age > 30")
+df = df.select("name")
+
+Nothing runs yet.
+Execution happens only when:
+df.show()
+
+Why Spark does this?
+To optimize execution.
+
+instad of step by step, Spark combines everything:
+Single optimized execution plan
+
+Real Analogy
+You plan a trip (lazy)
+You actually travel (action)
+
+
+Transformations vs Actions
+
+Transformations (Lazy)
+filter()
+select()
+groupBy()
+map()
+
+They:
+Do NOT execute immediately
+
+Actions (Trigger execution)
+Examples:
+
+show()
+collect()
+count()
+write()
+
+Trigger actual computation
+
+
+
+What is lazy evaluation in Spark?
+Answer:
+Lazy evaluation means Spark delays execution of transformations until an action is called, allowing it to optimize the execution plan.
+
+
+
+DAG (Execution Plan)
+Spark builds a DAG (Directed Acyclic Graph).
+Example:
+Python
+df.filter().groupBy().sum()
+
+Spark builds:
+Plain text
+Read → Filter → GroupBy → Sum
+
+Then optimizes:
+removes unnecessary steps
+combines operations
+reduces data movement
+
+A DAG is a logical execution plan that represents transformations and their dependencies in a Spark job.
+
+
+
+Narrow vs Wide Transformations
+
+Narrow Transformation
+Example:
+Python
+df.filter()
+df.select()
+
+Data stays in same partition.
+No shuffle
+Fast
+
+
+Wide Transformation
+Example:
+
+groupBy()
+join()
+
+Requires:
+
+Data shuffle across nodes
+Slow operation.
+
+
+
+Why are joins expensive in Spark?
+Answer:
+Joins require data shuffling across partitions, which involves network communication and increases execution time.
+
+
+Scenario
+“Your Spark job is slow. What will you check?”
+Answer:
+number of partitions
+data skew
+shuffle operations
+join type
+cluster size
+caching
+
+
+Think of Spark as:
+Plain text
+Driver → Plans job
+Executors → Process data
+Partitions → Units of parallelism
+Lazy evaluation → Optimization layer
+
+
+
+SparkSession is the entry point to Spark.
+
+
+SparkSession → single unified entry point
+Create SparkSession
+Python
+from pyspark.sql import SparkSession
+
+spark = SparkSession.builder \
+    .appName("MyApp") \
+    .getOrCreate()
+
+
+When you create SparkSession:
+Plain text
+Creates SparkContext
+Connects to cluster manager
+Initializes execution environment
+
+Q: Why SparkSession instead of SparkContext?
+Answer:
+SparkSession is a unified entry point that combines functionalities of SparkContext, SQLContext, and HiveContext.
+
+df = spark.read.csv("file.csv", header=True, inferSchema=True)
+df = spark.read.json("file.json")
+df = spark.read.parquet("file.parquet")
+
+
+Why is Parquet preferred over CSV?
+Answer:
+Parquet is columnar, compressed, and supports schema, making it more efficient for analytical queries compared to row-based CSV.
+
+
+df.write.csv("output/")
+df.write.parquet("output/")
+df.write.mode("overwrite").parquet("output/")
+
+
+Modes:
+
+overwrite → replace data
+append → add data
+error → fail if exists
+ignore → skip
+
+What happens if you write without specifying mode?
+Answer:
+Default mode is “error”, so the job fails if the path already exists.
+
+
+Schema Inference
+What is Schema?
+Schema = structure of data.
+Example:
+
+id INT
+name STRING
+age INT
+
+Automatic Schema Inference
+df = spark.read.csv("file.csv", inferSchema=True)
+
+Problem with Inference
+Inference requires:
+Scanning entire dataset
+This is:
+Slow for large data
+
+
+Define schema explicitly.
+
+
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+
+schema = StructType([
+    StructField("id", IntegerType(), True),
+    StructField("name", StringType(), True)
+])
+
+df = spark.read.csv("file.csv", schema=schema
+
+
+Why avoid inferSchema in production?
+Answer:
+inferSchema requires scanning data and may produce inconsistent results, so defining schema explicitly improves performance and reliability.
+
+basic operation in dataframe
+df.show()
+df.printSchema()
+df.select("name", "age")
+df.filter(df.age > 30)
+from pyspark.sql.functions import col
+df.withColumn("age_plus_one", col("age") + 1)
+
+df.groupBy("age").count()
+
+
+
+Q: Is select() an action or transformation?
+Answer:
+Transformation (lazy execution).
+
+
+Lazy Evaluation Example (Reinforcement)
+Python
+df = spark.read.csv("file.csv")
+df = df.filter("age > 30")
+df = df.select("name")
+No execution yet.
+Now:
+df.show()
+Execution starts.
+
+Scenario
+“You read a CSV but all columns are string. Why?”
+Answer:
+
+inferSchema not enabled or 
+schema not defined
+
+“Reading CSV is slow. Why?”
+Possible answers:
+schema inference scanning
+large file
+too many small files
+
+Mental Model
+Think of SparkSession as:
+
+Entry point → create DataFrames → apply transformations → trigger actions
+And DataFrame as:
+
+Distributed table across partitions
+
