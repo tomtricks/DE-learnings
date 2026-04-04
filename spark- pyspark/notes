@@ -317,3 +317,360 @@ And DataFrame as:
 
 Distributed table across partitions
 
+
+Q: Why are transformations lazy in Spark?
+Answer:
+Spark delays execution to optimize the entire computation using DAG optimization before running it.
+
+
+
+When action is called:
+
+DAG → Optimized → Executed → Results returned
+
+What happens when you call an action?
+Answer:
+Spark triggers execution of all previously defined transformations and computes the result.
+
+
+End-to-End Example (VERY IMPORTANT)
+Python
+df = spark.read.csv("file.csv")
+
+df = df.filter("age > 30")
+df = df.withColumn("age2", df.age + 5)
+
+df.select("age2").show()
+
+Execution Flow
+
+Before .show():
+Only DAG created
+
+After .show():
+
+Read → Filter → withColumn → Select → Execute
+
+
+DAG Visualization
+
+Read CSV
+   ↓
+Filter
+   ↓
+withColumn
+   ↓
+Select
+   ↓
+Action (show)
+
+Spark optimizes this whole chain before execution.
+
+Q: Does filter() execute immediately?
+Answer:
+❌ No
+✔ It is lazy
+
+
+Q: Which is faster: multiple transformations or multiple actions?
+Answer:
+Transformations are optimized together, but each action triggers a separate execution, so multiple actions can be expensive.
+
+
+df.filter(...).count()
+df.filter(...).count()
+Question:
+How many times does Spark run?
+Answer:
+
+2 times (no caching)
+
+Q: Why is collect() dangerous?
+Answer:
+It brings all data to the driver, which can cause memory overflow for large datasets.
+
+
+Q: Why is groupBy expensive?
+Answer:
+groupBy requires data shuffling across partitions, which involves network communication and increases execution time.
+
+Q: Difference between groupBy and window function?
+Answer:
+groupBy aggregates and reduces rows, while window functions perform calculations without collapsing rows.
+
+
+
+Shuffle = data movement across executors.
+
+
+df.groupBy("country").count()
+Data moves:
+
+Executor 1 → Executor 3
+Executor 2 → Executor 3
+
+
+Q: What is shuffle in Spark?
+Answer:
+Shuffle is the process of redistributing data across partitions to perform operations like groupBy or join.
+
+
+
+How to Avoid / Reduce Shuffle
+This is where interviews become advanced.
+✔ 1. Use reduceByKey instead of groupByKey (RDD concept)
+
+reduceByKey → partial aggregation → less shuffle
+✔ 2. Filter early
+Python
+df.filter("amount > 0").groupBy("country").sum()
+Reduces data before shuffle.
+✔ 3. Use partitioning
+Python
+df.repartition("country")
+Now data is already grouped → less shuffle later.
+✔ 4. Use broadcast joins (related concept)
+Avoids shuffle in joins.
+✔ 5. Use window functions wisely
+Still may shuffle but more controlled.
+
+
+
+Q: How do you optimize groupBy operations?
+Answer:
+Reduce data before aggregation, use proper partitioning, and avoid unnecessary wide transformations.
+
+Scenario 1
+“Your groupBy is slow. Why?”
+Answer:
+large data
+shuffle overhead
+data skew
+too many partitions
+
+Scenario 2
+“One country has 90% of data.”
+Problem:
+
+Data skew
+Solution:
+salting technique
+repartition
+skew handling
+
+
+groupByKey
+
+Moves all data → then aggregates
+Heavy shuffle.
+
+reduceByKey
+
+Partial aggregation → then shuffle
+More efficient.
+
+
+Q: Why is reduceByKey better than groupByKey?
+Answer:
+reduceByKey performs local aggregation before shuffle, reducing data transfer.
+
+Mental Model
+Think of aggregation as:
+
+Collect similar data → move it → compute result
+
+
+Types of Joins in Spark
+
+
+Inner Join
+Python
+df1.join(df2, "id", "inner")
+
+Only matching rows
+
+Left Outer Join
+Python
+df1.join(df2, "id", "left")
+All rows from left + matched from right
+
+Right Outer Join
+Python
+df1.join(df2, "id", "right")
+
+Full Outer Join
+Python
+df1.join(df2, "id", "outer")
+
+Left Semi Join (VERY IMPORTANT)
+Python
+df1.join(df2, "id", "left_semi")
+Only rows from df1 where match exists in df2
+(No columns from df2)
+
+Left Anti Join
+Python
+df1.join(df2, "id", "left_anti")
+Rows from df1 that DO NOT match df2
+
+Q: Difference between inner and left semi join?
+Answer:
+Inner join returns columns from both tables, while left semi join returns only matching rows from the left table without including columns from the right table.
+
+
+
+In essence: LEFT SEMI JOIN finds matches, LEFT ANTI JOIN finds non-matches, both only return data from the left table and avoid duplicates, unlike a standard LEFT JOIN.
+
+
+How Joins Work Internally (IMPORTANT)
+By default, Spark uses shuffle join.
+
+Example
+
+df1.join(df2, "id")
+
+Step 1: Partition both datasets
+
+Executor 1 → part of df1 + df2
+Executor 2 → part of df1 + df2
+
+Step 2: Shuffle
+
+All rows with same id → same executor
+
+
+Step 3: Join happens
+🔥 Key Insight
+
+Joins → cause SHUFFLE
+
+Q: Why are joins expensive in Spark?
+Answer:
+Joins require data shuffling across executors, which involves network transfer and increases execution time.
+
+
+Shuffle Join (Default Join)
+Characteristics
+
+Data moves across nodes
+Network heavy
+Slow for large datasets
+
+df_large.join(df_large2, "id")
+Both large → shuffle required.
+
+
+Broadcast Join (Optimization)
+Idea
+If one table is small:
+
+Send small table to all executors
+Avoid shuffle
+
+Example
+Python
+from pyspark.sql.functions import broadcast
+
+df_large.join(broadcast(df_small), "id")
+
+What happens internally
+
+Small table → copied to all executors
+Large table → stays where it is
+Join happens locally
+
+Visual
+
+Small table → broadcast to all nodes
+
+Executor 1 → join locally
+Executor 2 → join locally
+Executor 3 → join locally
+
+No shuffle needed.
+
+
+Q: What is a broadcast join?
+Answer:
+A broadcast join sends a small dataset to all executors, allowing joins to be performed locally without shuffle.
+
+When to Use Broadcast Join
+✔ Use when:
+
+One table is small (few MBs)
+Lookup table
+Dimension table
+
+Example:
+
+Orders (large)
+Customers (small)
+
+Avoid when:
+
+Both tables large
+Small table doesn't fit in memory
+
+Q: How do you decide to use broadcast join?
+Answer:
+Use broadcast join when one dataset is small enough to fit in executor memory, avoiding expensive shuffle operations.
+
+Auto Broadcast
+Spark automatically broadcasts small tables.
+
+Config:
+Python
+spark.conf.get("spark.sql.autoBroadcastJoinThreshold")
+
+Default (size):~10MB
+
+Q: Why broadcast didn’t happen automatically?
+Answer:
+table too large
+threshold too small
+disabled config
+
+Scenario 1
+“Join is slow”
+Answer:
+shuffle join happening
+use broadcast if possible
+
+Scenario 2
+“Small lookup table used in join”
+Best solution:
+Python
+broadcast(df_lookup)
+
+Scenario 3
+“One key has 90% data”
+Problem:
+
+Data skew
+
+Solution:
+salting
+skew join optimization
+
+
+Even broadcast joins can fail if:
+
+Executor memory insufficient
+Then:
+OutOfMemory error
+
+
+Mental Model
+Think of joins as:
+
+Bring matching data together
+
+
+Ways to do it:
+
+Shuffle → move data
+Broadcast → copy small data
+
+
+
+
