@@ -1002,3 +1002,441 @@ Think like this:
 Built-in → native → optimized → fast
 UDF → external → black box → slow
 
+
+Partitioning
+Data → split → partitions → processed by executors
+
+1000 rows → 4 partitions → 250 each
+More partitions → more parallelism
+Bad partitioning → slow jobs
+
+
+Q: What is a partition in Spark?
+Answer:
+A partition is the smallest unit of data processing in Spark that is distributed across executors for parallel computation.
+
+Equal data distribution → fast processing
+
+
+
+repartition() vs coalesce()
+This is a VERY COMMON interview question.
+✔ repartition()
+Python
+df.repartition(5)
+
+Behavior
+
+Full shuffle
+Redistributes data evenly
+
+Use case
+Plain text
+Increase partitions
+Fix skew
+Even distribution
+
+✔ coalesce()
+Python
+df.coalesce(2)
+
+Behavior
+
+No full shuffle (mostly)
+Merges partitions
+
+Use case
+
+Reduce partitions
+Avoid shuffle cost
+
+Q: Difference between repartition and coalesce?
+Answer:
+repartition performs a full shuffle and evenly redistributes data, while coalesce reduces partitions without a full shuffle, making it more efficient for reducing partitions.
+
+
+repartition by Column
+
+Custom partitioning
+Python
+df.repartition("country")
+
+All same country → same partition
+
+Benefit
+
+Better for joins/groupBy
+Less shuffle later
+
+Q: Why repartition by column before join?
+Answer:
+Repartitioning by join key ensures related data is colocated, reducing shuffle during joins.
+
+Data Skew
+
+Uneven data distribution
+
+Example:
+
+India → 90% data
+US → 5%
+UK → 5%
+
+Problem
+
+One partition huge → slow executor
+
+Q: What is data skew?
+Answer:
+Data skew occurs when data is unevenly distributed across partitions, causing some tasks to take much longer than others.
+
+
+How to Detect Skew
+Signs
+
+One task runs very long
+Uneven stage execution time
+
+
+How to Handle Skew
+
+✔ 1. Salting (VERY IMPORTANT)
+Add random value:
+Python
+from pyspark.sql.functions import rand
+
+df = df.withColumn("salt", (rand()*10).cast("int"))
+Now:
+
+Skewed key → split into multiple partitions
+
+
+
+For example, if the key customer_123 has 90% of your data, all that data gets sent to one partition, creating a bottleneck. Salting transforms customer_123 into multiple new keys like customer_123_0, customer_123_1, ..., customer_123_9. 
+
+
+✔ 2. Repartition
+Python
+df.repartition("key")
+
+✔ 3. Broadcast join
+If one side small:
+Python
+broadcast(df_small)
+
+✔ 4. Filter early
+Reduce skew impact.
+
+
+Q: How do you handle skew in joins?
+Answer:
+Use techniques like salting, repartitioning, or broadcast joins to distribute skewed data more evenly.
+
+
+Scenario 1
+“Too many small output files”
+Cause:
+Too many partitions
+Solution:
+Python
+df.coalesce(1)
+
+
+Scenario 2
+“Job is slow after join”
+Cause:
+
+Shuffle + skew
+Solution:
+broadcast small table
+repartition on key
+
+
+
+Scenario 3
+“Only one executor is busy”
+Cause:
+
+Data skew
+
+Q: Can coalesce increase partitions?
+Answer:
+❌ No (generally)
+
+Q: Which is faster: repartition or coalesce?
+Answer:
+coalesce is faster because it avoids full shuffle.
+
+
+df.coalesce(1).write.parquet()
+Question:
+Good or bad?
+Answer:
+Bad for large data — creates bottleneck (single partition).
+
+Q: Does repartition always improve performance?
+Answer:
+No, unnecessary repartition adds shuffle overhead.
+
+Mental Model
+Think like:
+
+Partition → workload unit
+Repartition → redistribute evenly
+Coalesce → merge partitions
+Skew → uneven workload
+
+
+
+
+
+Think of Repartition, Broadcast Join, and Filter like organizing a massive company-wide event.
+
+Repartition is like reassigning people to new tables at the event. If everyone from the "Engineering" team is crammed into one room, it's chaotic. Repartitioning is the act of evenly redistributing everyone—Engineers, Marketers, Designers—across all the tables so the space is used efficiently and no single room is overwhelmed. 
+
+Broadcast Join is like giving a single, small cheat sheet to every single person at the event.  Instead of having one master list of room numbers pinned to the wall (which would cause a bottleneck), you print out a tiny sheet with the room numbers and hand a copy to every single attendee. Now, everyone can check their own sheet instantly. This only works if the list is small enough to copy for everyone. 
+
+Filter is like only inviting the people who actually need to be there. Before you even start organizing tables or printing cheat sheets, you look at the guest list and remove anyone whose job title isn't "Manager". This makes every single step that follows—seating, printing, serving—faster and cheaper because you're dealing with a much smaller group. 
+
+
+
+
+File Formats
+
+CSV / JSON (Row-based)
+df = spark.read.csv("file.csv", header=True)
+df = spark.read.json("file.json")
+
+Problems
+
+Row-based storage
+No schema (or weak schema)
+No compression (efficient)
+Slow scans
+
+
+What happens internally
+Spark reads FULL file → then filters
+
+Parquet / ORC (Columnar formats)
+Example
+Python
+df = spark.read.parquet("file.parquet")
+
+Advantages
+Columnar storage
+Compression
+Schema stored
+Faster reads
+Predicate pushdown supported
+
+
+Internal behavior
+
+Reads ONLY required columns
+Skips unnecessary data
+
+
+Q: Why is Parquet faster than CSV?
+Answer:
+Parquet is a columnar format that supports compression and predicate pushdown, reducing I/O and improving query performance.
+
+
+
+Predicate Pushdown
+
+What is it?
+Instead of:
+Read all data → then filter
+
+Spark pushes filter to data source level:
+Read only required data
+
+eg:
+df = spark.read.parquet("file.parquet")
+df.filter("age > 30").show()
+
+What happens
+
+Only rows with age > 30 are read from disk
+NOT:
+Read all rows → filter later
+
+Works best with:
+
+Parquet
+ORC
+
+
+Does NOT work well with:
+
+CSV
+JSON
+
+Q: What is predicate pushdown?
+Answer:
+Predicate pushdown is an optimization where filtering is applied at the data source level, reducing the amount of data read into Spark.
+
+
+Scenario
+“Your query is slow even with filter”
+Cause:
+
+Using CSV → no pushdown
+Solution:
+
+Use Parquet
+
+Scenario
+“Reading unnecessary columns”
+Fix:
+Python
+df.select("needed_column")
+
+
+Best Practices
+
+Use Parquet/ORC for analytics
+Avoid CSV in production pipelines
+Apply filters early
+Select only required columns
+
+
+What is Structured Streaming?
+Spark processes real-time data streams.
+
+Instead of batch:
+Process once
+Streaming:
+Continuously process incoming data
+
+Example sources
+
+Kafka
+Socket
+Files
+
+
+readStream (Input)
+
+Example (Kafka)
+Python
+df = spark.readStream \
+    .format("kafka") \
+    .option("subscribe", "topic") \
+    .load()
+
+
+Example (Socket)
+Python
+df = spark.readStream \
+    .format("socket") \
+    .option("host", "localhost") \
+    .option("port", 9999) \
+    .load()
+
+
+
+Q: Difference between read and readStream?
+Answer:
+read is used for batch processing, while readStream is used for continuous streaming data processing.
+
+
+writeStream (Output)
+
+Example
+Python
+df.writeStream \
+  .format("console") \
+  .start()
+
+Modes
+
+append → new data only
+complete → full output every time
+update → only updated rows
+
+
+Triggering Streaming
+
+df.writeStream \
+  .trigger(processingTime="10 seconds")
+
+Meaning
+
+Process data every 10 seconds
+
+Watermarking (VERY IMPORTANT)
+
+Problem
+Late data arrives:
+
+Event time ≠ processing time
+Solution
+Watermark
+
+
+Example
+Python
+from pyspark.sql.functions import window
+
+df.withWatermark("timestamp", "10 minutes") \
+  .groupBy(window("timestamp", "5 minutes")) \
+  .count()
+
+
+Meaning
+Plain text
+Wait 10 minutes for late data
+After that → discard
+
+Q: What is watermarking?
+Answer:
+Watermarking defines how long Spark waits for late-arriving data before considering the data final.
+
+
+
+
+Streaming Flow
+
+Source (Kafka) → readStream
+→ Transformations
+→ writeStream (sink)
+
+
+Scenario 1
+“Late events missing”
+Fix:
+Use watermark
+
+
+Scenario 2
+“Streaming job memory increasing”
+Cause:
+
+State not cleaned
+Fix:
+
+Use watermark
+
+
+Scenario 3
+“Duplicate processing”
+Solution:
+
+Checkpointing (important concept)
+
+Mental Model
+
+Batch → one-time processing
+Streaming → continuous processing
+
+readStream → input
+writeStream → output
+Watermark → handles late data
+
+
+
+
+
+
