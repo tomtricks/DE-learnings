@@ -673,4 +673,332 @@ Broadcast → copy small data
 
 
 
+Why Caching is Needed
+Remember:
+
+Spark = Lazy Evaluation
+Example:
+
+Python
+df = spark.read.csv("file.csv")
+
+df_filtered = df.filter("age > 30")
+
+df_filtered.count()
+df_filtered.show()
+
+What happens WITHOUT cache?
+
+count() → full computation
+show() → full computation again
+
+So:
+Plain text
+Same DAG executed multiple times
+
+Problem
+Plain text
+Repeated computation → slow
+
+
+Solution
+
+df_filtered.cache()
+
+Now:
+Computed once → reused
+
+
+Q: Why do we cache DataFrames?
+Answer:
+To avoid recomputing the same transformations multiple times and improve performance.
+
+cache() vs persist()
+✔ cache()
+Python
+df.cache()
+
+Default:
+MEMORY_ONLY
+Stores data:
+In memory (RAM)
+
+✔ persist()
+Python
+from pyspark import StorageLevel
+
+df.persist(StorageLevel.MEMORY_AND_DISK)
+Allows:
+
+Custom storage levels
+
+
+Q: Difference between cache and persist?
+Answer:
+cache() uses default MEMORY_ONLY storage, while persist() allows specifying different storage levels like MEMORY_AND_DISK.
+
+Common Levels
+✔ MEMORY_ONLY
+
+Stored in RAM only
+Fastest
+Risk:
+
+If memory full → recompute
+
+✔ MEMORY_AND_DISK
+
+Store in memory
+Overflow → disk
+Safer option.
+
+✔ DISK_ONLY
+Stored only on disk
+Slower but reliable
+
+✔ MEMORY_ONLY_SER (Serialized)
+Compressed → uses less memory
+More CPU cost
+
+Q: Which storage level is safest?
+Answer:
+MEMORY_AND_DISK, because it avoids recomputation if memory is insufficient.
+
+When to Use Cache
+✔ Use when:
+
+Data reused multiple times
+Iterative algorithms
+Multiple actions on same DataFrame
+
+Example:
+df = df.filter(...)
+df.cache()
+
+df.count()
+df.show()
+df.write.parquet(...)
+
+
+Avoid when:
+
+Data used only once
+Data too large for memory
+No repeated computations
+
+
+Q: Can caching slow down your job?
+Answer:
+Yes, if data is not reused or too large, caching adds overhead without benefit.
+
+Evicting Cache (VERY IMPORTANT)
+Spark does NOT automatically remove cached data immediately.
+
+Remove cache manually
+df.unpersist()
+
+Clear all cache
+spark.catalog.clearCache()
+
+Why important?
+Memory is limited
+Unused cache wastes memory
+
+Q: What happens if you don’t unpersist?
+Answer:
+Cached data remains in memory, which can lead to memory pressure and performance issues.
+
+Scenario 1
+“Job is slow with repeated operations”
+Solution:
+Use cache
+
+“Out of memory error”
+Possible issue:
+
+Too much cached data
+
+Solution:
+
+Unpersist or use MEMORY_AND_DISK
+
+
+“Cache not improving performance”
+Possible reasons:
+data not reused
+cache not triggered (no action yet)
+dataset too large
+
+
+Scenario 4 (VERY TRICKY)
+Python
+df.cache()
+df.filter(...).count()
+Question:
+Is df cached?
+Answer:
+❌ No (yet)
+Because:
+
+Cache is lazy → needs action
+
+df.cache()
+Does NOT cache immediately.
+Only when:
+Python
+df.count()
+
+
+
+Q: Is cache eager or lazy?
+Answer:
+Cache is lazy; data is cached only after an action is triggered.
+
+Mental Model
+Think of cache as:
+
+Store computed result → reuse later
+
+Without cache:
+
+Recompute every time
+
+
+
+UDF = User Defined Function
+
+You write custom logic in Python.
+
+
+Example
+Python
+from pyspark.sql.functions import udf
+from pyspark.sql.types import IntegerType
+
+def double(x):
+    return x * 2
+
+double_udf = udf(double, IntegerType())
+
+df.withColumn("new_col", double_udf(df.age))
+
+What it does
+
+Custom logic applied row by row
+
+Built-in Functions 
+Spark provides optimized functions:
+
+from pyspark.sql.functions import col
+
+df.withColumn("new_col", col("age") * 2)
+
+Examples
+Python
+col()
+when()
+sum()
+concat()
+substring()
+
+Execution 
+built in function -JVM (Spark Engine)
+UDF- Python
+
+
+Why UDFs are Slow
+
+Built-in function flow
+
+Spark → JVM → optimized execution
+
+UDF flow
+
+Spark (JVM)
+   ↓
+Serialize data
+   ↓
+Send to Python
+   ↓
+Execute function
+   ↓
+Send back to JVM
+
+Problem
+
+Heavy serialization + communication overhead
+
+Q: Why are Python UDFs slow in Spark?
+Answer:
+Python UDFs require data serialization and transfer between JVM and Python processes, preventing Spark from optimizing execution.
+
+
+When to Avoid UDFs
+❌ Avoid when:
+
+Built-in function exists
+Simple transformations
+Aggregations
+String operations
+
+Use UDF when:
+
+Complex custom logic
+No built-in function available
+Special business rules
+
+
+Instead of Python UDF:
+Python
+from pyspark.sql.functions import pandas_udf
+
+Uses:
+Vectorized execution (Arrow)
+
+Q: What is a better alternative to Python UDF?
+Answer:
+Pandas UDFs use vectorized operations with Apache Arrow, making them faster than standard Python UDFs.
+
+“Your job is slow after adding UDF”
+Cause:
+
+Serialization overhead
+Solution:
+
+Replace with built-in function
+
+
+Scenario 2
+“Transformation logic is simple but using UDF”
+Wrong approach.
+Fix:
+
+Use pyspark.sql.functions
+
+
+“Need custom transformation”
+Options:
+Try built-in functions first
+Then Pandas UDF
+Then normal UDF
+
+Hidden Optimization Loss (VERY IMPORTANT)
+When you use UDF:
+
+Spark cannot:
+- optimize query
+- push filters
+- reorder operations
+
+Logic is opaque to Spark
+
+Q: Why can’t Spark optimize UDFs?
+Answer:
+Spark treats UDFs as black boxes, so it cannot apply Catalyst optimizer rules on them.
+
+Mental Model
+Think like this:
+
+Built-in → native → optimized → fast
+UDF → external → black box → slow
 
