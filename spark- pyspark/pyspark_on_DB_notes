@@ -1,0 +1,7 @@
+
+I converted a 8GB single CSV file to parquet there it saves into multiple parquet files the reason is this os how the spark will create partitons and chnage form one large csv to multiple parquet files for faster processing.
+
+If you really want just one file (for portability or sharing), you can coalesce or repartition before writing:
+python
+# Coalesce to 1 partition (single file)
+df.coalesce(1).write.mode("overwrite").parquet("/path/to/output_parquet")
