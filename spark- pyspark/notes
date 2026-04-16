@@ -105,6 +105,13 @@ write()
 
 Trigger actual computation
 
+If you chain operations and the result is still a DataFrame → transformation.
+If you call something that forces Spark to compute and gives you output (rows, counts, files) → action.
+
+Examples
+Transformations: filter(), select(), withColumn(), groupBy(), join(), distinct().
+Actions: show(), collect(), count(), first(), write().
+
 
 
 What is lazy evaluation in Spark?
