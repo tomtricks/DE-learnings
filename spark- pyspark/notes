@@ -1961,4 +1961,12 @@ Data is an information
 Information about the data is Metadata
 
 
+Lineage 
+Family lineage - grandfather - father -son
+
+The lifecycle of data, showing its origin, movement, transformations, and destination across systems.
+Source → Ingestion → Transformation → Storage → Consumption
+
+
+
 
