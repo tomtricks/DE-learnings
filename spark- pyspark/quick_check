@@ -1,0 +1,258 @@
+Perfect. If you've already covered Python basics and SQL, then don't spend much time on Pandas now. Move directly to PySpark DataFrames.
+
+The key is not learning hundreds of functions. It's understanding the pattern behind them.
+
+Think Like This
+
+Almost every PySpark transformation falls into one of these categories:
+
+Read Data
+↓
+Select Columns
+↓
+Filter Rows
+↓
+Create/Modify Columns
+↓
+Aggregate Data
+↓
+Join Data
+↓
+Window Functions
+↓
+Write Data
+
+
+If this flow becomes natural, you'll rarely get confused about which function to use.
+
+Suggested PySpark Learning Order
+1. Create and Read DataFrames
+
+Learn:
+
+spark.read.csv()
+spark.read.parquet()
+
+df.show()
+df.printSchema()
+df.columns
+
+
+Goal:
+
+Understand what a DataFrame is.
+Know how to inspect data.
+2. Select and Filter
+
+Learn:
+
+df.select("name", "salary")
+
+df.filter(col("salary") > 50000)
+
+df.where(col("age") > 25)
+
+
+Rule:
+
+Need columns? → select()
+
+Need rows? → filter()/where()
+
+3. Create or Modify Columns
+
+Learn:
+
+withColumn()
+lit()
+when()
+otherwise()
+
+
+Example:
+
+df.withColumn(
+    "status",
+    when(col("salary") > 50000, "High")
+    .otherwise("Low")
+)
+
+
+Rule:
+
+Need a new column?
+→ withColumn()
+
+4. Aggregations
+
+Learn:
+
+groupBy()
+count()
+sum()
+avg()
+max()
+min()
+
+
+Example:
+
+df.groupBy("department").avg("salary")
+
+
+Rule:
+
+Need summary?
+→ groupBy()
+
+5. Joins
+
+Most asked topic in interviews.
+
+Learn:
+
+inner
+left
+right
+full
+
+
+Example:
+
+df1.join(df2, "id", "inner")
+
+
+Rule:
+
+Need data from 2 tables?
+→ join()
+
+6. Window Functions
+
+Learn:
+
+row_number()
+rank()
+dense_rank()
+lead()
+lag()
+
+
+This is where many candidates struggle.
+
+Example:
+
+window = Window.partitionBy("dept").orderBy(col("salary").desc())
+
+df.withColumn(
+    "rank",
+    row_number().over(window)
+)
+
+
+Interview question:
+
+Find highest-paid employee in each department.
+
+Usually solved using Window Functions.
+
+7. Null Handling
+
+Learn:
+
+dropna()
+fillna()
+isNull()
+isNotNull()
+
+
+Very common in real projects.
+
+8. Spark Concepts
+
+After DataFrame APIs, learn:
+
+Transformations
+select()
+filter()
+groupBy()
+join()
+
+Actions
+show()
+count()
+collect()
+first()
+
+
+Interview question:
+
+Difference between Transformation and Action?
+
+Answer:
+
+Transformation:
+Creates a new DataFrame.
+Not executed immediately.
+
+Action:
+Triggers execution and returns result.
+
+9. Spark Architecture
+
+Learn these terms clearly:
+
+Driver
+Executor
+Cluster Manager
+DAG
+Stage
+Task
+Lazy Evaluation
+
+
+You don't need internals initially.
+
+Just know:
+
+Driver = Brain
+
+Executors = Workers
+
+Task = Smallest unit of work
+
+One Small Project
+
+Don't keep watching tutorials.
+
+Make a simple Employee dataset and perform:
+
+select
+filter
+withColumn
+groupBy
+join
+row_number
+
+If you can do these without looking at notes, your PySpark foundation is becoming solid.
+
+80/20 Interview Topics
+
+Focus heavily on:
+
+✅ select vs withColumn
+ ✅ filter vs where
+ ✅ groupBy aggregations
+ ✅ joins
+ ✅ row_number, rank, dense_rank
+ ✅ transformations vs actions
+ ✅ repartition vs coalesce
+ ✅ cache vs persist
+ ✅ lazy evaluation
+ ✅ Spark architecture basics
+
+These topics alone cover a large portion of PySpark interview questions for 2-5 years experience.
+
+Next Step
+
+Master them first. Nearly every advanced PySpark problem is built on top of these core operations.
