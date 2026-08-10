@@ -256,3 +256,21 @@ These topics alone cover a large portion of PySpark interview questions for 2-5 
 Next Step
 
 Master them first. Nearly every advanced PySpark problem is built on top of these core operations.
+
+---
+
+Real Project Thinking
+Suppose manager says:
+
+Filter employees earning more than 50000.
+
+Before coding:
+1. df.show()
+2. df.printSchema()
+
+Questions to ask:
+Does Salary column exist?
+Is Salary numeric?
+Any null values?
+
+Then write logic.
