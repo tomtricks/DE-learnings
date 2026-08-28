@@ -127,6 +127,9 @@ Rule:
 Need data from 2 tables?
 → join()
 
+join -> side by side -> increase the columns
+Union -> one below another -> row increase
+
 6. Window Functions
 
 Learn:
