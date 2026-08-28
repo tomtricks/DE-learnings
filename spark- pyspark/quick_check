@@ -274,3 +274,23 @@ Is Salary numeric?
 Any null values?
 
 Then write logic.
+
+--
+
+Spark Pipeline:
+eg:
+# S3 / Data Lake
+#       ↓
+# Partition Pruning
+# (skip unnecessary partitions)
+#       ↓
+# Predicate Pushdown
+# (filter early)
+#       ↓
+# Join
+#    ↓
+# Small table? → Broadcast
+#    ↓
+# Avoid unnecessary Shuffle
+#       ↓
+# Faster Spark Job
