@@ -294,3 +294,29 @@ eg:
 # Avoid unnecessary Shuffle
 #       ↓
 # Faster Spark Job
+
+
+
+---
+Spark Flow
+
+        #       Application
+        #            ↓
+        #         Driver
+        #            ↓
+        #       Job → Stages
+        #            ↓
+        #          Tasks
+        #         ↙     ↘
+        #  Executor    Executor
+        #     ↓           ↓
+        # Worker       Worker
+
+# 🔥 One-line interview memory
+# Driver = brain
+# Executor = processes data
+# Worker = machine
+# Cluster = machines together
+# Job = action
+# Stage = group of tasks between shuffles
+# Task = work on one partition
