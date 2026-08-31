@@ -1,0 +1,33 @@
+# You don't need to memorize long answers. Build these mental patterns:
+
+# 1. Performance problem
+# Think:
+
+# Logs → Spark UI → data volume → partitions → skew → joins → shuffle → resources
+
+# 2. Data quality problem
+# Think:
+
+# Validate → quarantine → log → correct → reprocess
+
+# 3. Duplicate problem
+# Think:
+
+# Unique ID/hash → control table → idempotent processing → skip/upsert
+
+# 4. Incremental loading
+# Think:
+
+# Watermark/CDC → only changed records → MERGE/upsert
+
+# 5. Pipeline failure
+# Think:
+
+# Checkpoint → restart from safe point → idempotent write
+
+# 6. Wrong output
+# Think:
+
+# Source → ingestion → transformation → target → reporting
+
+# Trace the data until you find where it first becomes wrong.
