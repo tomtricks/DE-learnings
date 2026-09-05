@@ -13,3 +13,11 @@ CASE
         PARTITION BY trade_id
         ORDER BY file_date
     ) AS end_date,
+from Table
+
+-- 
+if there is a query to check where there are how many ids doe not have a active record(active falg 'Y')
+select trade_id, count(*) as total_versions, sum(CASE when active_flag = 'Y' THEN 1 else 0 END) as active_versions from tradeweb.main.tradeweb_trades 
+group by trade_id HAVING sum(CASE when active_flag = 'Y' THEN 1 else 0 END) !=1;
+
+-- first we are grouping by trade_id and using having we are checking is a group is there any records without active flag Y, if so it will show that trade_id
