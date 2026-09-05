@@ -21,3 +21,9 @@ select trade_id, count(*) as total_versions, sum(CASE when active_flag = 'Y' THE
 group by trade_id HAVING sum(CASE when active_flag = 'Y' THEN 1 else 0 END) !=1;
 
 -- first we are grouping by trade_id and using having we are checking is a group is there any records without active flag Y, if so it will show that trade_id
+
+--
+when need to Pull data from prestage to Main, A best practice is 
+When figuring out the transformation create a VIEW insert data from prestage check it then if anyu transformation do it in view check and validate,
+Assume it like Main table then if all is valid then use that trnasfomration to main, so view will be deleted for that session and only the 
+valid transformation will be inserted in the mian table.
