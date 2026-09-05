@@ -1,0 +1,15 @@
+Used to create the SCD type 2 logic in code
+
+SELECT
+CASE
+        WHEN file_date = MAX(file_date) OVER (PARTITION BY trade_id)
+        THEN 'Y'
+        ELSE 'N'
+    END AS active_flag,
+
+    file_date AS start_date,
+
+    LEAD(file_date) OVER (
+        PARTITION BY trade_id
+        ORDER BY file_date
+    ) AS end_date,
