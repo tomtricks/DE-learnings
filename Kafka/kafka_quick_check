@@ -1,0 +1,113 @@
+
+
+
+1. Order is created
+        |
+        v
+2. Producer creates an event
+        |
+        v
+3. Event is sent to Kafka
+        |
+        v
+4. Kafka selects a partition
+        |
+        v
+5. Broker appends the event
+        |
+        v
+6. Kafka acknowledges the write
+        |
+        v
+7. Consumer reads the event
+        |
+        v
+8. Consumer processes and tracks progress
+
+
+
+
+
+Final 2-Minute Revision
+
+Before the interview, remember these 12 points:
+
+1. Kafka: Distributed event streaming platform.
+
+2. Producer: Sends records.
+
+3. Consumer: Reads records.
+
+4. Topic: Named event stream.
+
+5. Partition: Enables scalability and parallelism.
+
+6. Offset: Record position within a partition.
+
+7. Consumer group: Shares partition processing.
+
+8. Broker: Kafka server.
+
+9. Replication: Improves fault tolerance.
+
+10. Retention: Controls how long records remain available.
+
+11. Kafka + Spark: Kafka transports events; Spark processes them.
+
+12. Consumer lag: Indicates how far behind the consumer group is.
+
+
+The architecture to remember
+
+
+
+Source Application / Database
+              |
+              v
+           Producer
+              |
+              v
+         Kafka Cluster
+              |
+              v
+          Kafka Topic
+              |
+              v
+       Consumer / Spark
+              |
+              v
+      Transform and Process
+              |
+              v
+       Data Lake / DWH
+
+
+
+
+Kafka Connect and CDC ⭐⭐
+What is Kafka Connect?
+Kafka Connect integrates Kafka with external systems through reusable connectors.
+Source connector: Moves data into Kafka.
+Sink connector: Moves data from Kafka to an external destination.
+What is CDC?
+Change Data Capture identifies changes in a database, such as inserts, updates, and deletes.
+A CDC tool such as Debezium can publish these changes to Kafka.
+Example architecture:
+
+Source Database
+       |
+       v
+ CDC Tool / Connector
+       |
+       v
+      Kafka
+       |
+       v
+ Consumer / Sink Connector
+       |
+       v
+    Data Lake
+
+
+Interview answer:
+CDC captures changes from a source database and makes them available to downstream systems. Kafka can transport these change events, while consumers or sink connectors deliver them to destinations such as a data lake or analytical database.
