@@ -1418,3 +1418,75 @@ I understand these concepts and how Kafka fits into a streaming architecture, al
 That answer covers Kafka's purpose, its architecture, a practical data engineering use case, and your experience level without overstating anything.
 
 The goal is not just to memorise Kafka definitions. It's to understand where Kafka sits in a data pipeline, what problem it solves, and how the surrounding systems use it.
+
+
+
+
+
+-------------
+
+
+10. Basic Kafka Questions Interviewers Commonly Ask ⭐⭐⭐
+These are especially important if you mention that you've learned Kafka but have no practical exposure.
+Q1. What is Kafka?
+A distributed event streaming platform used to ingest, store, and distribute streams of events.
+
+Q2. What is a topic?
+A named stream of records.
+
+Q3. What is a broker?
+A Kafka server that stores and serves records.
+
+Q4. What is a partition?
+An ordered sequence of records within a topic.
+Q5. What is an offset?
+A record's position within a partition.
+Q6. What is a producer?
+An application that publishes events to Kafka.
+Q7. What is a consumer?
+An application that reads and processes events from Kafka.
+Q8. What is a consumer group?
+A group of consumers that share the processing of a topic's partitions.
+Q9. Why is Kafka distributed?
+It distributes data and processing across brokers and partitions, supporting scalability and fault tolerance.
+Q10. Why is Kafka useful in data engineering?
+It allows data to move continuously between source systems and downstream processing or storage systems.
+Q11. Can Kafka be used for batch processing?
+Kafka is primarily an event streaming platform, but its retained data can also feed batch processing and historical reprocessing pipelines.
+Q12. What is a schema registry?
+A system that manages event schemas and can enforce compatibility rules as data structures evolve.
+Q13. What happens when consumer lag increases?
+The consumer group is falling behind the latest records. Investigate processing time, incoming throughput, and available parallelism.
+Q14. How do you handle duplicate events?
+Use idempotent processing, unique event IDs, or suitable upsert and deduplication logic.
+Q15. What is the difference between Kafka and a traditional message queue?
+Kafka retains records according to configured policies and supports independent consumer groups and replay. Message queues vary in their delivery, retention, and replay capabilities.
+
+
+
+
+
+Tricky Kafka Concepts ⭐⭐⭐
+These are the concepts interviewers often ask about after the basics.
+Q1. Does Kafka guarantee ordering?
+Answer: Kafka guarantees ordering within an individual partition, not across all partitions in a topic.
+Follow-up: How do you maintain order for a particular customer?
+Use the customer ID as the record key. With the default keyed partitioning behavior, events for the same key are routed to the same partition, assuming the partitioning configuration remains consistent.
+Q2. What happens if a consumer fails?
+Answer: Kafka can rebalance the consumer group and assign the failed consumer's partitions to other consumers. Processing can resume from committed offsets if the records are still available.
+Q3. What happens if a producer sends data faster than consumers process it?
+Answer: Consumer lag increases. Monitor the lag, identify bottlenecks, and consider improving processing efficiency or increasing consumers if enough partitions are available.
+Q4. What is replication?
+Answer: Kafka maintains replicas of partitions across brokers. If a broker fails, an eligible in-sync replica can become the new leader.
+Q5. Does Kafka delete a message after it is consumed?
+Answer: No. Kafka generally retains records according to topic retention or compaction policies, regardless of whether a consumer has read them.
+Q6. What is consumer lag?
+Answer: Consumer lag is the difference between the latest available records and the consumer group's progress. High lag can indicate that consumers are unable to keep up with incoming data.
+Q7. What is rebalancing?
+Answer: Rebalancing redistributes partition assignments among consumers when group membership or assignment conditions change.
+Q8. What happens if a topic has three partitions but five consumers in one group?
+Answer: At most three consumers can actively consume those partitions at once. The other two consumers will have no partition assigned for that topic while the assignment remains unchanged.
+Q9. Can multiple applications consume the same topic?
+Answer: Yes. Different consumer groups can independently consume the same topic for different purposes.
+Q10. What happens if a consumer processes a record but crashes before committing its offset?
+Answer: The record may be read again after restart, potentially causing duplicate processing. Idempotent processing helps prevent duplicate business effects
