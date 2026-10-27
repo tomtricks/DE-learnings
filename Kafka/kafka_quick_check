@@ -111,3 +111,22 @@ Source Database
 
 Interview answer:
 CDC captures changes from a source database and makes them available to downstream systems. Kafka can transport these change events, while consumers or sink connectors deliver them to destinations such as a data lake or analytical database.
+
+
+
+
+Guarantee
+Meaning
+At-most-once
+An event is processed zero or one time; it may be lost from the processing perspective
+
+At-least-once
+An event may be processed more than once
+
+Exactly-once
+A defined processing operation produces one effective result within its supported scope
+
+Most important takeaway: At-least-once processing can produce duplicates, so downstream systems may need idempotency.
+
+Interview answer:
+At-least-once processing helps avoid losing events but can lead to duplicates after failures. Exactly-once semantics aim to avoid duplicate effects within a defined processing boundary and require appropriate configuration and application design.
