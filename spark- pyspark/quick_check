@@ -105,6 +105,21 @@ Rule:
 Need summary?
 → groupBy()
 
+
+Filter BEFORE GroupBy = SQL WHERE
+
+Use this to remove raw rows before you calculate any averages.
+PySpark: df.filter(age > 30).groupBy("dept").agg(avg("salary"))
+
+
+Filter AFTER GroupBy = SQL HAVING
+
+Use this to filter the final calculated results (the summary data).
+
+PySpark: df.groupBy("dept").agg(avg("salary").alias("avg_sal")).filter(avg_sal > 50000)
+
+THERE IS NO SPECIFIC HAVING CLAUSE IN PYSPARK.
+
 5. Joins
 
 Most asked topic in interviews.
