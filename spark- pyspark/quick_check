@@ -324,6 +324,17 @@ eg:
 # Faster Spark Job
 
 
+Join methods in execution:
+
+Broadcast Join: Avoids shuffling the large side, but requires memory for the broadcast table.
+
+Sort Merge Join: Requires shuffle and sorting, but handles large datasets effectively.(default)
+
+Shuffle Hash Join: Builds hash tables within partitions and can be useful in certain cases.
+
+Sort Merge Join is not always the fastest. Data size, key distribution, partitioning and available memory matter.
+
+
 
 ---
 Spark Flow
