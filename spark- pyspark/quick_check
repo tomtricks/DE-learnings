@@ -131,6 +131,16 @@ left
 right
 full
 
+return only columns from left table right ignore.
+left_semi - return only matching data from left table.
+left_anti - return only non_matching data from left.
+
+
+left_semi , inner difference 
+*both joins identity matching records but they return different columns
+* if duplicate matches on right left semi don't multiply left row, but inner will multiply records
+
+
 
 Example:
 
